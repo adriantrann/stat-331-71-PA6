@@ -1,9 +1,9 @@
 ---
 title: "Practice Activity 6"
+author: Hayden, Josh, Adrian, Harshitha
 format: html
 editor: visual
 self-contained: true
 ---
 
 ## 
-
