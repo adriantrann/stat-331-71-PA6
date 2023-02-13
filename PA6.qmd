@@ -1,0 +1,9 @@
+---
+title: "Practice Activity 6"
+format: html
+editor: visual
+self-contained: true
+---
+
+## 
+
