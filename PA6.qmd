@@ -1,10 +1,9 @@
 ---
 title: "Practice Activity 6"
-author: "Harshitha Bachina", "Adrian Tran", "Hayden King", "Josh Shneyder"
+author: "Harshitha Bachina, Adrian Tran, Hayden King, Josh Shneyder"
 format: html
 editor: visual
 self-contained: true
 ---
 
 ## 
-
