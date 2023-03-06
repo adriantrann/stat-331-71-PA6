@@ -14,4 +14,3 @@ self-contained: true
 13 * 13
 
 ```
-
