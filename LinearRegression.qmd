@@ -1,0 +1,108 @@
+---
+title: "Project Proposal - Data"
+author: "Adrian Tran, Harshitha Bachina, Hayden King, Josh Shneyder"
+format: 
+  html:
+    self-contained: true
+    code-tools: true
+    toc: true
+    number-sections: true
+editor: source
+execute: 
+  error: true
+  echo: true
+  message: false
+  warning: false
+---
+
+# Linear Regression
+
+## Loading in and Cleaning Data
+```{r}
+gdp = read.csv("~/Desktop/stat-331-71-PA6/gdppercapita_us_inflation_adjusted.csv")
+life = read.csv("~/Desktop/stat-331-71-PA6/life_expectancy_years.csv")
+library(tidyverse)
+library(ggplot2)
+library(broom)
+gdp_clean <- gdp |>
+  pivot_longer(cols = "X1959":"X2019",
+               names_to = "Year",
+               values_to = "GDP")
+
+life_clean <- life |>
+  pivot_longer(cols = "X1959":"X2019",
+               names_to = "Year",
+               values_to = "Life_Expectancy") |>
+  select("country", "Year", "Life_Expectancy")
+
+joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
+  mutate(
+    Year = str_remove(Year, "X"),
+    thousand = if_else(str_detect(GDP, "k"), T, F),
+    GDP = as.double(str_remove(GDP, "k")),
+    GDP = if_else(thousand, GDP * 1000, GDP),
+    lGDP = log(GDP)
+  ) |>
+  select(-thousand)|>
+  drop_na()
+```
+
+## Data Visualization
+
+### Linear
+
+```{r}
+ggplot(data=joined_data, aes(x=GDP, y=Life_Expectancy)) + 
+  geom_point() +
+  labs(x="GDP per capita", y="", subtitle = "Life Expectancy", title = "Relationship between GDP per capita and Life Expectancy") + 
+  geom_smooth(method="lm")
+model = lm(Life_Expectancy ~ GDP, data=joined_data)
+tidy(model)
+summary(model)$r.squared
+```
+$$\widehat{Life Expectancy} = 63.28 + 0.0003135GDP + u$$
+The linear model seems to be a poor fit for this data. The $R^2$ is rather low and the graph shows that the relationship is logarithmic rather than linear. The linear model predicts that if GDP per capita increases by 1 dollar, life expectancy is predicted to increase by 0.0003135 years.
+
+### Logarithmic
+
+```{r}
+ggplot(data=joined_data, aes(x=lGDP, y=Life_Expectancy)) + 
+  geom_point() +
+  labs(x="Ln(GDP per capita)", y="", subtitle = "Life Expectancy", title = "Relationship between Ln(GDP per capita) and Life Expectancy") +
+  geom_smooth(method="lm")
+logmodel = lm(Life_Expectancy ~ lGDP, data=joined_data)
+tidy(logmodel)
+summary(logmodel)$r.squared
+```
+$$\widehat{Life Expectancy} = 22.84 + 5.312lGDP + u$$
+The logarithmic transformation of GDP per capita makes a linear model fit quite well. The $R^2$ is moderate, which is pretty good considering how many factors can influence life expectancy across countries and across time. This model predicts that if GDP per capita increases by 1%, life expectancy increases by approximately 0.05312 years.
+
+From here on out, we will examine only the relationship between $lGDP$ and $Life Expectancy$.
+
+### Changes Over Time
+
+```{r}
+years = 1959:2019
+lms = matrix(nrow = length(years), ncol = 2)
+lms[,1] = years
+for(y in years) {
+  year_data = joined_data |>
+    filter(Year == y)
+  year_model = lm(Life_Expectancy ~ lGDP, data=year_data)
+  lms[y-1958, 2] = summary(year_model)$r.squared
+}
+lms = data.frame(lms)
+colnames(lms) = c("Year", "Rsquared")
+ggplot(data=lms, aes(x=Year, y=Rsquared)) +
+  geom_line() +
+  ylim(0,1) +
+  labs(y="", subtitle = "R^2", title = "R^2 of log(GDP per capita) and Life Expectancy over time")
+```
+The relationship is pretty stable over time and has been trending upward for the past decade. Outliers can be seen in the noticeable dips in the $R^2$. These low outliers could also be seen on the previous graphs.
+```{r}
+joined_data <- joined_data|>
+  mutate(residuals = logmodel$residuals)
+outliers <- joined_data |>
+  filter(abs(residuals) > 20)
+outliers
+```
