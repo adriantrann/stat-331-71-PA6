@@ -1,5 +1,5 @@
 ---
-title: "Project Proposal - Data"
+title: "Linear Regression"
 author: "Adrian Tran, Harshitha Bachina, Hayden King, Josh Shneyder"
 format: 
   html:
@@ -19,8 +19,8 @@ execute:
 
 ```{r} 
 #| include: false
-gdp = read.csv("~/Desktop/stat-331-71-PA6/gdppercapita_us_inflation_adjusted.csv")
-life = read.csv("~/Desktop/stat-331-71-PA6/life_expectancy_years.csv")
+gdp = read.csv("~/Downloads/stat-331-71-PA6/gdppercapita_us_inflation_adjusted.csv")
+life = read.csv("~/Downloads/stat-331-71-PA6/life_expectancy_years.csv")
 library(tidyverse)
 library(ggplot2)
 library(broom)
@@ -51,7 +51,7 @@ joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
 
 ## Data Visualization
 
-### Linear
+### Linear- Visualization #1
 
 ```{r}
 ggplot(data=joined_data, aes(x=GDP, y=Life_Expectancy)) + 
@@ -65,7 +65,7 @@ summary(model)$r.squared
 $$\widehat{Life Expectancy} = 63.28 + 0.0003135GDP + u$$
 The linear model seems to be a poor fit for this data. The $R^2$ is rather low and the graph shows that the relationship is logarithmic rather than linear. The linear model predicts that if GDP per capita increases by 1 dollar, life expectancy is predicted to increase by 0.0003135 years.
 
-### Logarithmic
+### Logarithmic- Visualization #2
 
 ```{r}
 ggplot(data=joined_data, aes(x=lGDP, y=Life_Expectancy)) + 
@@ -117,15 +117,15 @@ kable(outliers, col.names = c("Year", "Country", "GDP per Capita", "Life Expecta
 
 These high residual data points are all on the low end.
 They represent the following events:
-Cameroonian War of Independence and following Civil War
+Cameroonian War of Independence and following Civil War.
 
-Chinese Cultural Revolution/ Great Leap Forward
+Chinese Cultural Revolution/ Great Leap Forward.
 
-Conflict between Hutus and Tutsis in Burundi and Rwanda (culminating in the 1993 Rwandan Genocide)
+Conflict between Hutus and Tutsis in Burundi and Rwanda (culminating in the 1993 Rwandan Genocide).
 
-The AIDS crisis in Southern Africa as seen in Botswana and Eswatini
+The AIDS crisis in Southern Africa as seen in Botswana and Eswatini.
 
-A series of hurricans that hit Haiti in 2009
+A series of hurricanes that hit Haiti in 2009.
 
 
 ```{r}
@@ -209,6 +209,6 @@ kable(variance_table) |>
   kable_material_dark()
 ```
 $$R^2 = 1-\frac{38.29}{97.63} = \frac{59.34}{97.63} = 0.608$$
-The variance in $lGDP$ accounts for 60.7% of the variance in $Life Expectancy$. This is a moderate $R^2$, so this model does a decent job of explaining the response. Considering how many factors may influence $Life Expectancy$, this is a good model.
+The variance in $lGDP$ accounts for 60.7% of the variance in $Life Expectancy$. This is a moderate $R^2$, so this model does a decent job of explaining the response. Considering how many factors may influence $Life Expectancy$, this is a good quality model.
 
 
