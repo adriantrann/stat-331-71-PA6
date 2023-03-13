@@ -1,11 +1,30 @@
 ---
-title: "Simulation"
-format:
+title: "Part 3: Simulation"
+author: "Adrian Tran, Harshitha Bachina, Hayden King, Josh Shneyder"
+format: 
   html:
-    theme: default
+    self-contained: true
+    code-tools: true
+    toc: true
+    number-sections: true
+editor: source
+execute: 
+  error: true
+  echo: true
+  message: false
+  warning: false
 ---
 
 ```{r}
 
+
+
+
 ```
 
+##3.1 Visualizing Simulations from the Model
+
+
+
+
+##3.2 Generating Multiple Predictive Checks
