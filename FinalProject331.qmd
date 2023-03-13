@@ -1,0 +1,214 @@
+
+---
+title: "Linear Regression"
+author: "Adrian Tran, Harshitha Bachina, Hayden King, Josh Shneyder"
+format: 
+  html:
+    self-contained: true
+    code-tools: true
+    toc: true
+    number-sections: true
+editor: source
+execute: 
+  error: true
+  echo: true
+  message: false
+  warning: false
+---
+
+# Linear Regression
+
+```{r} 
+#| include: false
+gdp = read.csv("~/Desktop/stat-331-71-PA6/gdppercapita_us_inflation_adjusted.csv")
+life = read.csv("~/Desktop/stat-331-71-PA6/life_expectancy_years.csv")
+library(tidyverse)
+library(ggplot2)
+library(broom)
+library(knitr)
+library(kableExtra)
+gdp_clean <- gdp |>
+  pivot_longer(cols = "X1959":"X2019",
+               names_to = "Year",
+               values_to = "GDP")
+
+life_clean <- life |>
+  pivot_longer(cols = "X1959":"X2019",
+               names_to = "Year",
+               values_to = "Life_Expectancy") |>
+  select("country", "Year", "Life_Expectancy")
+
+joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
+  mutate(
+    Year = str_remove(Year, "X"),
+    thousand = if_else(str_detect(GDP, "k"), T, F),
+    GDP = as.double(str_remove(GDP, "k")),
+    GDP = if_else(thousand, GDP * 1000, GDP),
+    lGDP = log(GDP)
+  ) |>
+  select(-thousand)|>
+  drop_na()
+```
+
+## Data Visualization
+
+### Linear- Visualization #1
+
+```{r}
+ggplot(data=joined_data, aes(x=GDP, y=Life_Expectancy)) + 
+  geom_point() +
+  labs(x="GDP per capita", y="", subtitle = "Life Expectancy", title = "Relationship between GDP per capita and Life Expectancy") + 
+  geom_smooth(method="lm")
+model = lm(Life_Expectancy ~ GDP, data=joined_data)
+tidy(model)
+summary(model)$r.squared
+```
+$$\widehat{Life Expectancy} = 63.28 + 0.0003135GDP + u$$
+The linear model seems to be a poor fit for this data. The $R^2$ is rather low and the graph shows that the relationship is logarithmic rather than linear. The linear model predicts that if GDP per capita increases by 1 dollar, life expectancy is predicted to increase by 0.0003135 years.
+
+### Logarithmic- Visualization #2
+
+```{r}
+ggplot(data=joined_data, aes(x=lGDP, y=Life_Expectancy)) + 
+  geom_point() +
+  labs(x="Ln(GDP per capita)", y="", subtitle = "Life Expectancy", title = "Relationship between Ln(GDP per capita) and Life Expectancy") +
+  geom_smooth(method="lm")
+logmodel = lm(Life_Expectancy ~ lGDP, data=joined_data)
+tidy(logmodel)
+summary(logmodel)$r.squared
+```
+$$\widehat{Life Expectancy} = 22.84 + 5.312lGDP + u$$
+The logarithmic transformation of GDP per capita makes a linear model fit quite well. The $R^2$ is moderate, which is pretty good considering how many factors can influence life expectancy across countries and across time. This model predicts that if GDP per capita increases by 1%, life expectancy increases by approximately 0.05312 years.
+
+From here on out, we will examine only the relationship between $lGDP$ and $Life Expectancy$.
+
+### Changes Over Time
+
+```{r}
+years = 1959:2019
+lms_year = matrix(nrow = length(years), ncol = 2)
+lms_year[,1] = years
+for(y in years) {
+  year_data = joined_data |>
+    filter(Year == y)
+  year_model = lm(Life_Expectancy ~ lGDP, data=year_data)
+  lms_year[y-1958, 2] = summary(year_model)$r.squared
+}
+lms_year = data.frame(lms_year)
+colnames(lms_year) = c("Year", "Rsquared")
+ggplot(data=lms_year, aes(x=Year, y=Rsquared)) +
+  geom_line() +
+  ylim(0,1) +
+  labs(y="", subtitle = "R^2", title = "R^2 of ln(GDP per capita) and Life Expectancy over time")
+```
+
+### Differences Between Countries
+The relationship is pretty stable over time and has been trending upward for the past decade. Outliers can be seen in the noticeable dips in the $R^2$. These low outliers could also be seen on the previous graphs.
+```{r}
+joined_data <- joined_data|>
+  mutate(residuals = logmodel$residuals)
+outliers <- joined_data |>
+  filter(abs(residuals) > 20) |>
+  mutate(lGDP = round(lGDP, digits = 2),
+         residuals = round(residuals, digits = 2))
+kable(outliers, col.names = c("Year", "Country", "GDP per Capita", "Life Expectancy", "ln(GDP per Capita)", "Residual")) |>
+  kable_material_dark("hover")
+  
+```
+
+These high residual data points are all on the low end.
+They represent the following events:
+Cameroonian War of Independence and following Civil War
+
+Great Leap Forward and resulting famine
+
+Conflict between Hutus and Tutsis in Burundi and Rwanda (culminating in the 1993 Rwandan Genocide)
+
+The AIDS crisis in Southern Africa as seen in Botswana and Eswatini
+
+A series of hurricanes that hit Haiti in 2009
+
+
+```{r}
+countries = joined_data |>
+  select(country) |>
+  distinct()
+
+lms_country = matrix(nrow = length(countries), ncol = 2)
+lms_country[,1] = countries
+lms_country = data.frame(lms_country)
+colnames(lms_country) = c("Country", "Rsquared")
+idnum = 1
+for( c in countries$country){
+  country_data = joined_data |>
+    filter(country == c)
+  country_model = lm(Life_Expectancy ~ lGDP, data=country_data)
+  lms_country[idnum , "Rsquared"] = summary(country_model)$r.squared
+  idnum = idnum + 1
+}
+```
+
+```{r}
+ggplot(data=lms_country, aes(x=Rsquared)) +
+  geom_histogram(binwidth = 0.1) +
+  labs(x="R-squared", y="",subtitle = "Count", title="Histogram of Countries by R-Squared of ln(GDP per capita) and Life Expectancy")
+```
+While the relationship between $lGDP$ and $Life Expectancy$ is quite strong for most countries, for some countries it is much weaker. This is mostly due to events that decrease life expectancy such as epidemics, famines, natural disasters and wars. Botswana for example had a linear relationship between $lGDP$ and $Life Expectancy$ until the AIDS crisis hit. This drop in $Life Expectancy$ while $lGDP$ continued to grow is responsible for its $R^2$ of 0.0013.
+```{r}
+joined_data |>
+  filter(country == "Botswana") |>
+  ggplot(aes(x=lGDP, y=Life_Expectancy)) +
+  geom_point() +
+  labs(x="ln(GDP per capita)", y="", subtitle = "Life Expectancy", title = "Life Expectancy and ln(GDP per capita) in Botswana") +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+lms_country |>
+  mutate(Rsquared = round(Rsquared, digits =3))|>
+  slice_min(order_by = Rsquared, n=8) |>
+  kable() |>
+  kable_material_dark("hover")
+```
+
+
+```{r}
+joined_data |>
+  filter(country == "Germany") |>
+  ggplot(aes(x=lGDP, y=Life_Expectancy)) + 
+  geom_point() +
+  labs(x="ln(GDP per capita)", y="", subtitle = "Life Expectancy", title = "Life Expectancy and ln(GDP per capita) in Germany") +
+  geom_smooth(method = "lm")
+```
+In countries without life expectancy-decreasing events since 1959, there is a very strong linear relationship. In the case Germany, the $R^2$ is 0.983.
+
+```{r}
+lms_country |>
+  mutate(Rsquared = round(Rsquared, digits =3))|>
+  slice_max(order_by = Rsquared, n=8) |>
+  kable() |>
+  kable_material_dark("hover")
+```
+
+
+## Linear Regression
+
+As shown previously, the estimated linear regression model is:
+$$\widehat{Life Expectancy} = 22.84 + 5.312lGDP + u$$
+This model predicts that if GDP per capita increases by 1%, life expectancy increases by approximately 0.05312 years.
+
+## Model Fit
+
+```{r}
+variance_table = matrix(nrow = 1, ncol = 3)
+colnames(variance_table) = c("Variance of Response", "Response of Fitted Values", "Variance of Residuals")
+variance_table[1,1] = var(joined_data$Life_Expectancy)
+variance_table[1,2] = var(logmodel$fitted.values)
+variance_table[1,3] = var(logmodel$residuals)
+variance_table[1,] = round(variance_table[1,], digits = 2)
+kable(variance_table) |>
+  kable_material_dark()
+```
+$$R^2 = 1-\frac{38.29}{97.63} = \frac{59.34}{97.63} = 0.608$$
+The variance in $lGDP$ accounts for 60.7% of the variance in $Life Expectancy$. This is a moderate $R^2$, so this model does a decent job of explaining the response. Considering how many factors may influence $Life Expectancy$, this is a good quality model.
+
