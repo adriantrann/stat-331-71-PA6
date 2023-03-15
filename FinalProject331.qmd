@@ -1,6 +1,6 @@
 
 ---
-title: "Linear Regression"
+title: "Final Report"
 author: "Adrian Tran, Harshitha Bachina, Hayden King, Josh Shneyder"
 format: 
   html:
@@ -53,30 +53,13 @@ joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
 
 ## Data Visualization
 
-### Linear- Visualization #1
 
-```{r}
-ggplot(data = joined_data, aes(x = GDP, y = Life_Expectancy)) +
-  geom_point(alpha=0.05, color="orange") +
-  labs(
-    x = "GDP per capita",
-    y = "",
-    subtitle = "Life Expectancy",
-    title = "Relationship between GDP per capita and Life Expectancy"
-  ) +
-  geom_smooth(method = "lm")
-model = lm(Life_Expectancy ~ GDP, data = joined_data)
-tidy(model)
-summary(model)$r.squared
-```
-$$\widehat{Life Expectancy} = 63.28 + 0.0003135GDP + u$$
-The linear model seems to be a poor fit for this data. The $R^2$ is rather low and the graph shows that the relationship is logarithmic rather than linear. The linear model predicts that if GDP per capita increases by 1 dollar, life expectancy is predicted to increase by 0.0003135 years.
 
-### Logarithmic- Visualization #2
+### Logarithmic- Visualization
 
 ```{r}
 lineargraph = ggplot(data = joined_data, aes(x = lGDP, y = Life_Expectancy)) +
-  geom_point(alpha=0.1, color="orange") +
+  geom_point(alpha = 0.1, color = "orange") +
   labs(
     x = "Ln(GDP per capita)",
     y = "",
@@ -89,8 +72,8 @@ logmodel = lm(Life_Expectancy ~ lGDP, data = joined_data)
 tidy(logmodel)
 summary(logmodel)$r.squared
 ```
-$$\widehat{Life Expectancy} = 22.84 + 5.312lGDP + u$$
-The logarithmic transformation of GDP per capita makes a linear model fit quite well. The $R^2$ is moderate, which is pretty good considering how many factors can influence life expectancy across countries and across time. This model predicts that if GDP per capita increases by 1%, life expectancy increases by approximately 0.05312 years.
+$$\widehat{Life Expectancy} = 22.84 + 5.312lGDP$$
+The logarithmic transformation of GDP per capita makes a linear model fit quite well. The $R^2$ is moderate, which is pretty good considering how many factors can influence life expectancy across countries and across time. This model predicts that if GDP per capita increases by 1%, mean $LifeExpectancy$ increases by approximately 0.05312 years. At a GDP per capita of 1 dollar per capita, mean $LifeExpectancy$ is 22.84 years.
 
 From here on out, we will examine only the relationship between $lGDP$ and $Life Expectancy$.
 
@@ -100,21 +83,46 @@ From here on out, we will examine only the relationship between $lGDP$ and $Life
 years = 1959:2019
 lms_year = matrix(nrow = length(years), ncol = 2)
 lms_year[, 1] = years
+coef_year = matrix(nrow = length(years), ncol = 3)
+coef_year[, 1] = years
 for (y in years) {
   year_data = joined_data |>
     filter(Year == y)
   year_model = lm(Life_Expectancy ~ lGDP, data = year_data)
   lms_year[y - 1958, 2] = summary(year_model)$r.squared
+  coef_year[y - 1958, 2] = year_model$coefficients[1]
+  coef_year[y - 1958, 3] = year_model$coefficients[2]
 }
 lms_year = data.frame(lms_year)
 colnames(lms_year) = c("Year", "Rsquared")
+coef_year = data.frame(coef_year)
+colnames(coef_year) = c("Year", "Beta0", "Beta1")
+
 ggplot(data = lms_year, aes(x = Year, y = Rsquared)) +
-  geom_line(color="steelblue") +
+  geom_line(color = "steelblue") +
   ylim(0, 1) +
   labs(y = "",
        subtitle = "R-Squared",
        title = "R-Squared of ln(GDP per capita) and Life Expectancy over time")
 ```
+While variation in $lGDP$ has consistently explained about 60% of variation in $LifeExpectancy$, the nature of this relationship has changed significantly over time.
+
+```{r}
+library(patchwork)
+beta0 = ggplot(data = coef_year, aes(x = Year, y=Beta0)) +
+  geom_line(color = "steelblue") +
+  labs(y = "",
+       subtitle = "Estimated Intercept",
+       title = "Estimated Intercept Over Time")
+
+beta1 = ggplot(data = coef_year, aes(x = Year, y=Beta1)) +
+  geom_line(color = "steelblue") +
+  labs(y = "",
+       subtitle = "Estimated Slope",
+       title = "Estimated Slope of ln(GDP per capita) Over Time")
+beta0+beta1
+```
+
 
 ### Differences Between Countries
 The relationship is pretty stable over time and has been trending upward for the past decade. Outliers can be seen in the noticeable dips in the $R^2$. These low outliers could also be seen on the previous graphs.
@@ -232,33 +240,37 @@ lms_country |>
 
 ## Linear Regression
 
-### Assumptions
-1. Linearity
+### 1. Linearity
 ```{r}
 lineargraph
 ```
 Even after the log transformation of $GDP$, the data is still a bit nonlinear.
 
-2. Random Sampling/ No Autocorrelation
+### 2. Random Sampling/ No Autocorrelation
 The assumption of random sampling isn't met, but we can substitute the assumption of no autocorrelation. The data shows partial autocorrelation of about 0.2 which is relatively stable across various lags, so this assumption isn't met either. The p-value of the autocorrelation is 0.
 ```{r}
-acf(joined_data$residuals, type="correlation")
+acf(joined_data$residuals, type = "correlation")
 library(lmtest)
 dwtest(logmodel)
 ```
-3. No colinearity
-Since there is only one explanatory variable ($lGDP$), there can't be any autocorrelation
+### 3. No colinearity
+Since there is only one explanatory variable ($lGDP$), there can't be any colinearity.
 
-4. Mean Independence
+### 4. Mean Independence
 ```{r}
-ggplot(data=joined_data, aes(x=lGDP, y=residuals)) +
-  geom_point(alpha=0.15, color="steelblue") +
-  labs(x="ln(GDP per capita)", y="", subtitle = "Life Expectancy Residual", title = "Residuals Plot")
+ggplot(data = joined_data, aes(x = lGDP, y = residuals)) +
+  geom_point(alpha = 0.15, color = "steelblue") +
+  labs(
+    x = "ln(GDP per capita)",
+    y = "",
+    subtitle = "Life Expectancy Residual",
+    title = "Residuals Plot"
+  )
 
 ```
 The assumption of mean independence isn't met because the explanatory variable can be used to predict the residuals. For high values of $lGDP$, the residuals are all below 0 for example.
 
-5. Homoskedasticity
+### 5. Homoskedasticity
 ```{r}
 library(AER)
 coeftest(logmodel, vcovHC(logmodel))
@@ -269,19 +281,24 @@ $$9162 \times R^2_{\hat u^2} = 301.4$$
 $$R^2_{\hat u^2} = 0.033$$
 While the data isn't homoskedastic, the Breush-Pagan test statistic shows that only 3.3% of the variance in $u_i$ can be explained by the variance in $lGDP$. We can say this because $var(u_i) = E(u^2_i) - E(u_i)^2$ and $E(u_i)=0$.
 
-6. Normality of $u$
+### 6. Normality of $u$
 ```{r}
-ggplot(data=joined_data, aes(x=residuals)) +
-  geom_histogram(fill="steelblue") +
-  labs(y="", subtitle = "Count", x="Residuals", title="Histogram of Residuals")
+ggplot(data = joined_data, aes(x = residuals)) +
+  geom_histogram(fill = "steelblue") +
+  labs(
+    y = "",
+    subtitle = "Count",
+    x = "Residuals",
+    title = "Histogram of Residuals"
+  )
 ```
 While the distribution is skewed left, it isn't severe. This is because of the low outliers mentioned earlier.
 
 ### Estimated Model
 
 As shown previously, the estimated linear regression model is:
-$$Life Expectancy = 22.84 + 5.312lGDP + u$$
-This model predicts that if GDP per capita increases by 1%, life expectancy increases by approximately 0.05312 years.
+$$\widehat {Life Expectancy} = 22.84 + 5.312lGDP$$
+This model predicts that if GDP per capita increases by 1%, mean $LifeExpectancy$ increases by approximately 0.05312 years. At a GDP per capita of 1 dollar per capita, mean $LifeExpectancy$ is 22.84 years.
 
 ## Model Fit
 
@@ -293,7 +310,7 @@ colnames(variance_table) = c("Variance of Response",
 variance_table[1, 1] = var(joined_data$Life_Expectancy)
 variance_table[1, 2] = var(logmodel$fitted.values)
 variance_table[1, 3] = var(logmodel$residuals)
-variance_table[1, ] = round(variance_table[1, ], digits = 2)
+variance_table[1,] = round(variance_table[1,], digits = 2)
 kable(variance_table) |>
   kable_material_dark()
 ```
@@ -301,7 +318,6 @@ $$R^2 = 1-\frac{38.29}{97.63} = \frac{59.34}{97.63} = 0.608$$
 The variance in $lGDP$ accounts for 60.7% of the variance in $Life Expectancy$. This is a moderate $R^2$, so this model does a decent job of explaining the response. Considering how many factors may influence $Life Expectancy$, this is a good quality model.
 
 ```{r}
-library(patchwork)
 set.seed(1738)
 sigma = sigma(logmodel)
 predictions = predict(logmodel)
@@ -310,9 +326,9 @@ simulation <- function(x, rse) {
   return(x)
 }
 actualdata = ggplot(data = joined_data, aes(x = Life_Expectancy)) +
-  geom_histogram(binwidth = 2)
+  geom_histogram(binwidth = 2, fill = "steelblue")
 simdata = ggplot(data = joined_data, aes(x = simulation(predictions, sigma))) +
-  geom_histogram(binwidth = 2)
+  geom_histogram(binwidth = 2, fill = "steelblue")
 actualdata + simdata
 ```
 Because of the left skew of the data, the simulation distribution doesn't exactly match the actual distribution.
