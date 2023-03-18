@@ -7,7 +7,6 @@ format:
     self-contained: true
     code-tools: true
     toc: true
-    number-sections: true
     code-fold: true
 editor: source
 execute: 
@@ -42,6 +41,7 @@ life_clean <- life |>
 joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
   mutate(
     Year = str_remove(Year, "X"),
+    Year = as.numeric(Year),
     thousand = if_else(str_detect(GDP, "k"), T, F),
     GDP = as.double(str_remove(GDP, "k")),
     GDP = if_else(thousand, GDP * 1000, GDP),
@@ -50,10 +50,10 @@ joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
   select(-thousand) |>
   drop_na()
 ```
+## Data Description
+In this final project report, my group and I decided to explore the relationship between the inflation-adjusted GDP per capita in US dollars and the Life Expectancy at Birth. We retrieved this data from Gap Minder, which is a data source that combines data from multiple sources into a coherent time series. The Life Expectancy dataset shows the average number of years a newborn child would live if current mortality rates stay the same. The dataset ranges across various countries and includes rates from 1799 to 2099. The inflation-adjusted GDP per capita in US dollars covers various countries as well from 1959 to 2019. 
 
 ## Data Visualization
-
-
 
 ### Logarithmic- Visualization
 
@@ -244,7 +244,7 @@ lms_country |>
 ```{r}
 lineargraph
 ```
-Even after the log transformation of $GDP$, the data is still a bit nonlinear.
+Even after the log transformation of $GDP$, the data still shows some curvature.
 
 ### 2. Random Sampling/ No Autocorrelation
 The assumption of random sampling isn't met, but we can substitute the assumption of no autocorrelation. The data shows partial autocorrelation of about 0.2 which is relatively stable across various lags, so this assumption isn't met either. The p-value of the autocorrelation is 0.
@@ -258,10 +258,11 @@ Since there is only one explanatory variable ($lGDP$), there can't be any coline
 
 ### 4. Mean Independence
 ```{r}
-ggplot(data = joined_data, aes(x = lGDP, y = residuals)) +
+logmodel |>
+ggplot(aes(x = .fitted, y = .resid)) +
   geom_point(alpha = 0.15, color = "steelblue") +
   labs(
-    x = "ln(GDP per capita)",
+    x = "ln(GDP per capita) fitted values",
     y = "",
     subtitle = "Life Expectancy Residual",
     title = "Residuals Plot"
@@ -325,10 +326,39 @@ simulation <- function(x, rse) {
   x <- x + rnorm(n = length(x), mean = 0, sd = rse)
   return(x)
 }
-actualdata = ggplot(data = joined_data, aes(x = Life_Expectancy)) +
+actualhist = ggplot(data = joined_data, aes(x = Life_Expectancy)) +
   geom_histogram(binwidth = 2, fill = "steelblue")
-simdata = ggplot(data = joined_data, aes(x = simulation(predictions, sigma))) +
+simhist = ggplot(data = joined_data, aes(x = simulation(predictions, sigma))) +
   geom_histogram(binwidth = 2, fill = "steelblue")
-actualdata + simdata
+actualhist + simhist
 ```
-Because of the left skew of the data, the simulation distribution doesn't exactly match the actual distribution.
+Because of the left skew of the data, the simulation distribution doesn't exactly match the actual distribution. Due to the high sample size (9162 observations,) this isn't a huge issue.
+
+```{r}
+simulate <- function() {
+  x = predictions + rnorm(n = length(joined_data$lGDP),
+                          mean = 0,
+                          sd = 6.188)
+  simmodel = lm(joined_data$Life_Expectancy ~ x)
+  return(summary(simmodel)$r.squared)
+}
+ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
+  geom_histogram(fill = "steelblue") +
+  labs(
+    x = "Simulated R-squared of Life Expectancy and Simulated ln(GDP per capita)",
+    y = "",
+    subtitle = "Count",
+    title = "R-squared Simulation"
+  )
+```
+
+```{r}
+# library(gganimate)
+# library(gifski)
+# ggplot(data=joined_data, aes(x=lGDP, y=Life_Expectancy, color=country)) +
+#   geom_point(alpha = 0.7, show.legend = FALSE) +
+#   labs(title = 'Year: {frame_time}', x = 'ln(GDP per capita)', y = 'Life Expectancy') +
+#   transition_time(Year) +
+#   ease_aes('linear')
+```
+
