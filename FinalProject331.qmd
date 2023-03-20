@@ -93,7 +93,7 @@ We will fit a regression line to this transformed data. From here on out, we wil
 
 ## Assumptions of the Linear Regression Model
 
-To fit a linear regression we need to check 5 assumptions. Some of these assumptions are violated to differing degrees, so NOT SURE WHAT TO PUT HERE BUT WE NEED TO SAY SOMETHING
+To fit a linear regression we need to check 5 assumptions. Some of these assumptions are violated to differing degrees, but none of them are severely violated. The high sample size makes it so that very small violations of the assumptions can be detected.
 
 ### 1. Linearity
 
@@ -115,16 +115,16 @@ dwtest(logmodel)
 Since there is only one explanatory variable ($lGDP$), there can't be any colinearity.
 
 ### 4. Homoskedasticity
-Homoskedasticity means that the residuals at each point on the regression line have equal variance. In other words, the fitted values cannot predict the residuals. We conducted the Breusch-Pagan test to determine if Heteroskedasticity (unequal variances across the regression line) is present in the data.
+Homoskedasticity means that the residuals at each point on the regression line have equal variance. In other words, the fitted values cannot predict the residuals. We conducted the Breusch-Pagan test to determine if Heteroskedasticity (unequal variances of residuals across the regression line) is present in the data.
 ```{r}
 bptest(logmodel)
 ```
 $$BP = n \times R^2_{\hat u^2} = 301.4 $$
 $$9162 \times R^2_{\hat u^2} = 301.4$$
 $$R^2_{\hat u^2} = 0.033$$
-While the data isn't homoskedastic, the Breusch-Pagan test statistic shows that only 3.3% of the variance in $u_i$ can be explained by the variance in $lGDP$. We can say this because $var(u_i) = E(u^2_i) - E(u_i)^2$ and $E(u_i)=0$. While this heteroskedasticity is very much present with a p-value of 0, that is more a function of the huge sample size than a significant amount of the variation in $u^2$ being explained by $lGDP$. The relationship can be seen below. The regression line has a low $R^2$ of 0.033.
+While the data isn't homoskedastic, the Breusch-Pagan test statistic shows that only 3.3% of the variance in $u_i$ can be explained by the variance in $lGDP$. We can say this because $var(u_i) = E(u^2_i) - E(u_i)^2$ and $E(u_i)=0$. While this heteroskedasticity is very much present with a p-value of 0, that is more a function of the huge sample size than a significant amount of the variation in $u^2$ being explained by $lGDP$.
 
-### 5. Normality of $u$
+### 5. Normality of $u$ (Residuals)
 ```{r}
 ggplot(data = joined_data, aes(x = residuals)) +
   geom_histogram(fill = "steelblue") +
@@ -204,7 +204,7 @@ beta1 = ggplot(data = coef_year, aes(x = Year, y=Beta1)) +
        title = "Estimated Slope of ln(GDP per capita) Over Time")
 beta0+beta1
 ```
-The left graph shows how the mean $Life Expectancy$ when GDP per capita is 1 dollar has increased dramatically over time. The right graph shows that while a 1% increase in GDP per capita increased $LifeExpectancy$ by almost 0.07 years in 1959, it now does so by only around 0.04 years.
+The left graph shows how the mean $LifeExpectancy$ when GDP per capita is 1 dollar has increased dramatically over time. The right graph shows that while a 1% increase in GDP per capita increased $LifeExpectancy$ by almost 0.07 years in 1959, it now does so by only around 0.04 years.
 
 ## Differences Between Countries
 
@@ -369,7 +369,7 @@ simulate <- function() {
   simmodel = lm(joined_data$Life_Expectancy ~ x)
   return(summary(simmodel)$r.squared)
 }
-ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
+r2sim <- ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
   geom_histogram(fill = "steelblue") +
   labs(
     x = "Simulated R-squared of Life Expectancy and Simulated ln(GDP per capita)",
@@ -377,6 +377,7 @@ ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
     subtitle = "Count",
     title = "R-squared Simulation"
   )
+r2sim
 ```
 
 # Conclusion
