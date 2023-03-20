@@ -52,9 +52,9 @@ joined_data = merge(gdp_clean, life_clean, by = c("Year", "country")) |>
 # Summary of Data
 
 ## Data Description
-In this final project report, my group and I decided to explore the relationship between the inflation-adjusted GDP per capita in US dollars and the Life Expectancy at birth. We retrieved this data from Gap Minder, which is a data source that combines data from multiple sources into a coherent time series. The Life Expectancy data set shows the average number of years a newborn child would live if current mortality rates stay the same. The data set ranges across various countries and includes rates from 1799 to 2099. The inflation-adjusted GDP per capita in US dollars covers various countries as well from 1959 to 2019. We joined these data sets together to analyze the relationship between GDP per capita and Life Expectancy between 1959 and 2019.
+In this final project report, we decided to explore the relationship between the inflation-adjusted GDP per capita in US dollars and the Life Expectancy at birth. We retrieved this data from Gapminder, which is a data source that combines data from multiple sources into a coherent time series. The life expectancy data set shows the average number of years a newborn child would live if current mortality rates stay the same. The data set includes data on almost every country and includes rates from 1799 to 2099. The inflation-adjusted GDP per capita in US dollars covers almost every country from 1959 to 2019, but there is some missing data in the earlier years for less developed countries. We joined these data sets together to analyze the relationship between GDP per capita and Life Expectancy between 1959 and 2019.
 
-This project often utilizes the $R^2$ value as a comparative measure for goodness of fit for a given model. This statistical measure determines the variation of a dependent variable that can be explained by an independent variable. A higher $R^2$ signifies a stronger relationship between the two variables.
+This project often utilizes the $R^2$ value as a comparative measure for goodness of fit for a given model. This statistical measure determines the variation of a dependent variable that can be explained by an independent variable. A higher $R^2$ signifies a stronger relationship between the two variables. The value of the statistic ranges between 0 and 1, with 1 signifying a perfect relationship and 0 signifying no correlation at all.
 
 ## Linear Visualization
 To visualize the relationship between these variables, we started with a scatterplot.
@@ -212,13 +212,12 @@ There are no countries in the data that have suddenly increased their life expec
 
 ```{r}
 library(plotly)
-interactiveplot <- plot_ly(
+plot_ly(
   joined_data,
   x = ~ lGDP,
   y = ~ Life_Expectancy,
   text = ~ paste("Country: ", country, '<br>Year:', Year)
 )
-interactiveplot
 ```
 
 ### Low Outliers
@@ -369,7 +368,7 @@ simulate <- function() {
   simmodel = lm(joined_data$Life_Expectancy ~ x)
   return(summary(simmodel)$r.squared)
 }
-r2sim <- ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
+ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
   geom_histogram(fill = "steelblue") +
   labs(
     x = "Simulated R-squared of Life Expectancy and Simulated ln(GDP per capita)",
@@ -377,7 +376,6 @@ r2sim <- ggplot(data = NULL, aes(x = map_dbl(1:2000, ~ simulate()))) +
     subtitle = "Count",
     title = "R-squared Simulation"
   )
-r2sim
 ```
 
 # Conclusion
